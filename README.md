@@ -26,7 +26,7 @@ DZ FaceDetailer is a custom node for the "ComfyUI" framework inspired by !After 
 - batch images support
 
 ## Installation
-clone the repo [https://github.com/daxthin/DZ-FaceDetailer.git](https://github.com/daxthin/DZ-FaceDetailer.git) in custom_nodes folder
+clone the repo [https://github.com/poke900310-lgtm/DZ-FaceDetailer-mediapipe-tasks.git](https://github.com/poke900310-lgtm/DZ-FaceDetailer-mediapipe-tasks.git) in custom_nodes folder
 
 ## Maintenance note
 
