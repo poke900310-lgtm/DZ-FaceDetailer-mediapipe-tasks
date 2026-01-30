@@ -1,5 +1,4 @@
 import torch
-from mediapipe import solutions
 import cv2
 import numpy as np
 from PIL import Image, ImageFilter
@@ -8,10 +7,23 @@ import os
 import comfy
 import nodes
 from folder_paths import base_path
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
+from mediapipe import Image as MPImage
+from mediapipe import ImageFormat
 
 face_model_path = os.path.join(base_path, "models/dz_facedetailer/yolo/face_yolov8n.pt")
 MASK_CONTROL = ["dilate", "erode", "disabled"]
 MASK_TYPE = ["face", "box"]
+face_landmarker_path = os.path.join(base_path, "models/dz_facedetailer/mediapipe/face_landmarker.task")
+_BASE_OPTIONS = python.BaseOptions(model_asset_path=face_landmarker_path)
+_FACE_LANDMARKER_OPTIONS = vision.FaceLandmarkerOptions(base_options=_BASE_OPTIONS,running_mode=vision.RunningMode.IMAGE,num_faces=1,output_face_blendshapes=False,output_facial_transformation_matrixes=False)
+_FACE_LANDMARKER = None
+def get_face_landmarker():
+    global _FACE_LANDMARKER
+    if _FACE_LANDMARKER is None:
+        _FACE_LANDMARKER = vision.FaceLandmarker.create_from_options(_FACE_LANDMARKER_OPTIONS)
+    return _FACE_LANDMARKER
 
 class FaceDetailer:
     @classmethod
@@ -195,14 +207,13 @@ def facemesh_mask(image):
         # set the square in the face location
         face = image[new_y_min:new_y_max, new_x_min:new_x_max, :]
 
-        mp_face_mesh = solutions.face_mesh
-        face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, min_detection_confidence=0.5)
-        results = face_mesh.process(cv2.cvtColor(face, cv2.COLOR_BGR2RGB))
-        if results.multi_face_landmarks:
-            for face_landmarks in results.multi_face_landmarks:
+        mp_img = MPImage(image_format=ImageFormat.SRGB,data=cv2.cvtColor(face, cv2.COLOR_BGR2RGB))
+        result = get_face_landmarker().detect(mp_img)
+        if result.face_landmarks:
+            for face_landmarks in result.face_landmarks:
                 # List of detected face points
                 points = []
-                for landmark in face_landmarks.landmark:
+                for landmark in face_landmarks:
                     cx, cy = int(
                         landmark.x * face.shape[1]), int(landmark.y * face.shape[0])
                     points.append([cx, cy])
