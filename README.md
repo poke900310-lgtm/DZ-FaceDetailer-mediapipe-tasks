@@ -1,6 +1,6 @@
 # DZ FaceDetailer
 
-All credits go to https://github.com/nicofdga/DZ-FaceDetailer
+All credits go to https://github.com/nicofdga
 
 ## Custom Node for ComfyUI (Stable Diffusion)
 
