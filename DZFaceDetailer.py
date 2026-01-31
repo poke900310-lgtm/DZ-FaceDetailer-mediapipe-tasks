@@ -19,6 +19,8 @@ face_landmarker_path = os.path.join(base_path, "models/dz_facedetailer/mediapipe
 _BASE_OPTIONS = python.BaseOptions(model_asset_path=face_landmarker_path)
 _FACE_LANDMARKER_OPTIONS = vision.FaceLandmarkerOptions(base_options=_BASE_OPTIONS,running_mode=vision.RunningMode.IMAGE,num_faces=1,output_face_blendshapes=False,output_facial_transformation_matrixes=False)
 _FACE_LANDMARKER = None
+DEBUG_FACE_CROP = True
+
 def get_face_landmarker():
     global _FACE_LANDMARKER
     if _FACE_LANDMARKER is None:
@@ -203,9 +205,36 @@ def facemesh_mask(image):
         new_x_max = int(center_x + new_width / 2)
         new_y_max = int(center_y + new_height / 2)
 
+        # Clamp to image bounds
+        h, w, _ = image.shape
+
+        new_x_min = max(0, new_x_min)
+        new_y_min = max(0, new_y_min)
+        new_x_max = min(w, new_x_max)
+        new_y_max = min(h, new_y_max)
+
+        if new_x_max <= new_x_min or new_y_max <= new_y_min:
+            continue
+
         # print((new_x_min, new_y_min), (new_x_max, new_y_max))
         # set the square in the face location
         face = image[new_y_min:new_y_max, new_x_min:new_x_max, :]
+
+        if DEBUG_FACE_CROP:
+            h, w, _ = image.shape
+            print(
+                "\n[FaceDetailer DEBUG]",
+                f"\n  YOLO box (float): ({x_min:.1f}, {y_min:.1f}) → ({x_max:.1f}, {y_max:.1f})",
+                f"\n  Square box (int): ({new_x_min}, {new_y_min}) → ({new_x_max}, {new_y_max})",
+                f"\n  Image size     : {w} x {h}",
+                f"\n  Face shape     : {face.shape}",
+            )
+            
+        if DEBUG_FACE_CROP and face.size == 0:
+            print("[FaceDetailer DEBUG] EMPTY FACE → cvtColor WILL FAIL")
+        
+        if face.size == 0:
+            continue
 
         mp_img = MPImage(image_format=ImageFormat.SRGB,data=cv2.cvtColor(face, cv2.COLOR_BGR2RGB))
         result = get_face_landmarker().detect(mp_img)
